@@ -11,8 +11,7 @@ app.get('/', (req, res) => {
 });
 
 app.get('/history', (req, res) => {
-  // Create a copy of operationHistory without the /history entry
-  const historyWithoutHistoryEntry = operationHistory.filter(entry => entry.equation !== 'images/icons/gear.png');
+  const historyWithoutHistoryEntry = operationHistory.filter(entry => entry.equation !== '/history');
   res.json({ history: historyWithoutHistoryEntry });
 });
 
@@ -26,26 +25,52 @@ app.get('/:url*', (req, res) => {
 
   const segments = fullUrl.split('/');
   let result = parseFloat(segments[0]);
-  let operator;
-
+  let equation = '';
+  
   const numbers = [];
   const operators = [];
 
   segments.forEach((segment, index) => {
     if (index % 2 === 0) {
+      if (index !== 0) {
+        equation += ` ${segment}`;
+      } else {
+        equation += `${segment}`;
+      }
       numbers.push(parseFloat(segment));
     } else {
-      operators.push(segment);
+      switch (segment) {
+        case 'into':
+          operators.push('x');
+          equation += ' x';
+          break;
+        case 'plus':
+          operators.push('+');
+          equation += ' +';
+          break;
+        case 'minus':
+          operators.push('-');
+          equation += ' -';
+          break;
+        case 'divide':
+          operators.push('/');
+          equation += ' /';
+          break;
+        default:
+          operators.push(segment);
+          equation += ` ${segment}`;
+          break;
+      }
     }
   });
 
   for (let i = 0; i < operators.length; i++) {
-    if (operators[i] === 'into') {
+    if (operators[i] === 'x') {
       numbers[i] *= numbers[i + 1];
       numbers.splice(i + 1, 1);
       operators.splice(i, 1);
       i--;
-    } else if (operators[i] === 'divide') {
+    } else if (operators[i] === '/') {
       numbers[i] /= numbers[i + 1];
       numbers.splice(i + 1, 1);
       operators.splice(i, 1);
@@ -55,16 +80,16 @@ app.get('/:url*', (req, res) => {
 
   result = numbers[0];
   for (let i = 0; i < operators.length; i++) {
-    if (operators[i] === 'plus') {
+    if (operators[i] === '+') {
       result += numbers[i + 1];
-    } else if (operators[i] === 'minus') {
+    } else if (operators[i] === '-') {
       result -= numbers[i + 1];
     }
   }
 
-  operationHistory.push({ equation: fullUrl, result });
+  operationHistory.push({ equation: equation, result });
 
-  res.json({ result });
+  res.json({ question: equation, Answer: result });
 });
 
 app.listen(port, () => {
